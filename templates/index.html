@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auto-AD.com</title>
+    <script src="https://registry.npmmirror.com/vue/3.3.11/files/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Noto Sans TC", sans-serif;
+      }
+      body, html {
+        height: 100%;
+        margin: 0;
+      }
+
+      .custom-bg-gray {
+        background-color: rgba(62, 62, 62, 1);
+        /* 确保颜色值为 #3e3e3e */
+      }
+
+      .custom-text-gray {
+        color: rgba(62, 62, 62, 1); /* 确保颜色值为 #3e3e3e */
+      }
+
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .chat-content {
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 10rem;
+      }
+
+      .chat-input {
+        flex-shrink: 0;
+      }
+
+      .message {
+        max-width: 90%;
+        padding: 0.5rem;
+        border-radius: 1rem;
+        margin: 0.6rem;
+        white-space: pre-wrap; /* 確保文本在空白處換行 */
+        word-wrap: break-word; /* 強制長單詞換行 */
+      }
+
+      .message-user {
+        align-self: flex-end;
+        background-color: #e5e7eb;
+        color: #1f2937;
+      }
+
+      .message-bot {
+        align-self: flex-start;
+        background-color: #1f2937;
+        color: #e5e7eb;
+      }
+
+      .fixed-bottom {
+        position: fixed;
+        bottom: 0;
+        width: calc(100% - 25%);
+        /* 右侧栏宽度 */
+        background-color: #000;
+        /* 背景色 */
+        padding: 1rem;
+        /* 内边距 */
+      }
+
+      .footer-text {
+        text-align: center;
+        margin-top: 1rem;
+        color: rgba(62, 62, 62, 1);
+      }
+    </style>
+  </head>
+
+  <body class="bg-black text-white">
+    <div id="app" class="flex h-screen">
+      <!-- Sidebar -->
+      <div class="custom-bg-gray w-1/4 p-4 flex flex-col items-center">
+        <div class="bg-black p-4 rounded w-full mb-4">
+          <h2 class="text-center mb-4">產品資訊</h2>
+          <div class="product-info flex flex-col items-center">
+            <img
+              v-if="imageUrl"
+              :src="imageUrl"
+              alt="Uploaded Image"
+              class="w-full mb-4"
+              style="height: auto"
+            />
+            <button
+              class="bg-orange-500 text-white py-2 px-4 rounded mb-4"
+              @click="triggerFileUpload"
+            >
+              {{ uploadImageButtonText }}上傳照片
+            </button>
+            <input
+              type="file"
+              id="upload"
+              name="upload"
+              @change="onFileChange"
+              style="display: none"
+            />
+            <p class="text-center mb-4">(格式：jpg, jpeg, png)</p>
+            <textarea
+              class="bg-gray-600 text-white p-2 rounded w-full mb-4"
+              placeholder="%%productDescriptionPlaceholder %% 請輸入產品描述..."
+              v-model="productDescription"
+            ></textarea>
+            <p class="text-center mb-4 text-xs">
+              請針對產品進行簡單的描述 <br>
+              （例如：這是一個飛利浦透視海星氣炸鍋HD9257，
+              獨家專利海星底盤TurboStar）
+            </p>
+            <textarea
+              class="bg-gray-600 text-white p-2 rounded w-full mb-4"
+              placeholder="%%productDescriptionPlaceholder %% 請貼上產品連結網址..."
+              v-model="productlink"
+            ></textarea>
+          </div>
+            <button
+            class="bg-orange-500 text-white py-2 px-4 rounded mb-4 ml-24"
+            @click="sendProductInfo"
+            >
+            送出資訊
+            </button>
+            <p class="text-white p-2 text-center">Auto-AD.com</p>
+        </div>
+      </div>
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col pt-8 pr-8 pb-8 pl-8">
+        <div v-if="showWelcome" class="flex justify-between items-center mb-2">
+          <h1 class="text-4xl font-bold">Welcome to Auto-AD.com!</h1>
+          <img
+            alt="Logo"
+            class="w-30 h-30"
+            height="75"
+            src="/static/logo.png"
+            width="75"
+          />
+        </div>
+        <div v-if="showWelcome" class="mb-8">
+          <p>
+            歡迎來到自動化廣告生成器，我們將藉由AI幫助您針對指定產品自動生成相關圖文生成。
+          </p>
+        </div>
+        <div v-if="showMarketing" class="grid grid-cols-3 gap-7 mb-12">
+          <div class="bg-gray-600 p-4 rounded" style="height: 280px">
+            <!-- <ul class="list-disc list-inside"> -->
+              <img
+              alt="Bottle"
+              class="w-full mb-4"
+              height="200"
+              src="/static/Hot.jpg"
+              width="300"
+            />
+          </div>
+          <div class="bg-gray-600 p-4 rounded" style="height: 280px">
+            <img
+              alt="Bottle"
+              class="w-full mb-2"
+              height="200"
+              src="/static/bottle.jpg"
+              width="300"
+            />
+            <a href="https://www.cw.com.tw/article/5130689"  target="_blank" rel="noopener noreferrer">
+              基礎在眼和市場爆出生路 藍瓶在眼和市場爆出生路 被譽為...
+            </a>
+          </div>
+          <div class="bg-gray-600 p-4 rounded" style="height: 280px">
+            <img
+              alt="Gold"  
+              src="/static/gold.jpg"
+              class="w-full mb-2"
+              height="200"
+              width="300"
+            />
+            <p>金曲獎2024》歌王熱狗MC HotDog、歌后孫盛希！得獎名單一次看...</p>
+          </div>
+        </div>
+        <div class="chat-container">
+          <div class="chat-content flex flex-col overflow-y: auto; space-y-4">
+            <div
+              v-for="message in messages"
+              :key="message.id"
+              :class="['message', message.sender === 'user' ? 'message-user' : 'message-bot']"
+            >
+              {{ message.text }}
+            </div>
+          </div>
+          <div class="fixed-bottom">
+            <div class="flex justify-start items-left mt-2 mb-3 gap-1">
+              <button
+                @click="handleButtonClick('創意文字')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2"
+              >
+                <i class="pl-1 fas fa-pen"></i>
+                <span class="pr-1">創意文字</span>
+              </button>
+              <button
+                @click="handleButtonClick('我需要廣告圖片')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2 ml-2"
+              >
+                <i class="pl-1 fas fa-image"></i>
+                <span class="pr-1">廣告圖片</span>
+              </button>
+              <button
+                @click="handleButtonClick('再行銷策略')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2 ml-2"
+              >
+                <i class="pl-1 fas fa-redo"></i>
+                <span class="pr-1">再行銷策略</span>
+              </button>
+              <button
+                @click="handleButtonClick('優化關鍵字')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2 ml-2"
+              >
+                <i class="pl-1 fas fa-key"></i>
+                <span class="pr-1">優化關鍵字</span>
+              </button>
+              <button
+                @click="handleButtonClick('優化網頁')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2 ml-2"
+              >
+                <i class="pl-1 fas fa-globe"></i>
+                <span class="pr-1">優化網頁</span>
+              </button>
+              <button
+                @click="handleButtonClick('買家評論')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2 ml-2"
+              >
+                <i class="pl-1 fas fa-star"></i>
+                <span class="pr-1">買家評論</span>
+              </button>
+              <button
+                @click="handleButtonClick('客戶QA')"
+                class="bg-gray-800 p-2 rounded-lg flex items-center space-x-2 ml-2"
+              >
+                <i class="pl-1 fas fa-question-circle"></i>
+                <span class="pr-1">客戶QA</span>
+              </button>
+            </div>
+            <div class="flex items-center">
+              <input
+                v-model="userInput"
+                class="bg-gray-600 text-white p-2 rounded w-5/6"
+                placeholder="請輸入你想詢問的內容"
+                type="text"
+              />
+              <button
+                @click="sendMessage"
+                class="bg-gray-800 text-white py-2 px-4 rounded ml-2"
+              >
+                <i class="fas fa-arrow-up"></i>
+              </button>
+            </div>
+            <div class="footer-text">
+              <p>© 2024 Meeting Assistant. All Rights Reserved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const { createApp, ref } = Vue;
+
+      createApp({
+        setup() {
+          const showWelcome = ref(true);
+          const showMarketing = ref(true);
+          const showButtons = ref(true);
+          const userInput = ref("");
+          const messages = ref([]);
+          const imageUrl = ref(null);
+          const uploadImageButtonText = ref("");
+          const productlink = ref("");
+          const productDescription = ref("");
+
+          const sendMessage = async (message = null) => {
+          if (message != null) {
+            if (userInput.value.trim() === "") return;
+            message = userInput.value;
+          } else if (typeof message === "object" && message !== null) {
+            message = message.target.textContent.trim();
+          }
+
+          // const sendMessage = async (message = null) => {
+          // if (message === null) {
+          //   if (userInput.value.trim() === "") return;
+          //   message = userInput.value;
+          // } else if (typeof message === "object" && message !== null) {
+          //   message = message.target.textContent.trim();
+          // }
+          // const sendMessage = async (message = null) => {
+          //   console.log("message : " + message);
+          //   if (message === null) {
+          //     if (userInput.value.trim() === "") return;
+          //     message = userInput.value;
+          //   } else if (typeof message === "object" && message !== null) {
+          //     message = message.target.textContent.trim();
+          //   }
+
+            // Hide welcome and marketing content
+            showWelcome.value = false;
+            showMarketing.value = false;
+            showButtons.value = false;
+            
+            // console.log("messages : " + JSON.stringify(messages.value));
+
+            messages.value.push({
+              id: Date.now(),
+              text: message,
+              sender: "user",
+            });
+
+            // console.log("1messages : " + JSON.stringify(messages.value));
+
+            try {
+              // Send data to backend API and handle response
+              const response = await axios.post(
+                "http://127.0.0.1:5001/api/send_message",
+                {
+                  userMessage: message,
+                  imageUrl: imageUrl.value,
+                  productDescription: productDescription.value,
+                  buttonMessage: message,
+                },
+                {
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              messages.value.push({
+                id: Date.now() + 1,
+                text: response.data.reply,
+                sender: "bot",
+              });
+              // console.log("messages resp: " + JSON.stringify(messages.value));
+
+
+            } catch (error) {
+              console.error("Error sending message to backend:", error);
+              messages.value.push({
+                id: Date.now() + 1,
+                text: "Error: Unable to get a response from the backend.",
+                sender: "bot",
+              });
+            }
+
+            userInput.value = "";
+            showButtons.value = true;
+          };
+
+          const handleButtonClick = (presetMessage) => {
+            sendMessage(presetMessage);
+          };
+
+          const triggerFileUpload = () => {
+            document.getElementById("upload").click();
+          };
+
+          const onFileChange = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                imageUrl.value = e.target.result;
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+
+          const sendProductInfo = () =>{
+            alert('已經送出產品資訊');
+          }
+
+          return {
+            showWelcome,
+            showMarketing,
+            showButtons,
+            userInput,
+            messages,
+            sendMessage,
+            handleButtonClick,
+            imageUrl,
+            productDescription,
+            triggerFileUpload,
+            uploadImageButtonText,
+            productlink,
+            onFileChange,
+            sendProductInfo,
+          };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
